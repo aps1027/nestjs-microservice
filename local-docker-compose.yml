@@ -1,0 +1,27 @@
+version: '3.7'
+networks:
+  backend:
+volumes:
+  auth-data:
+services:
+  auth-db:
+    image: mysql:5.7
+    container_name: auth-db
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: auth
+    volumes:
+      - auth-data:/var/lib/mysql
+    networks:
+    - backend
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8081:8080
+    networks:
+      - backend

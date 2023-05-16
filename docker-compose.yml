@@ -1,0 +1,72 @@
+version: '3.7'
+networks:
+  backend:
+volumes:
+  auth-data:
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+      target: build-stage
+    container_name: api-gateway
+    command: >
+      sh -c "
+      yarn start:api-gateway:dev
+      "
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    depends_on:
+      - auth
+    volumes:
+      - ./apps/api-gateway:/app/apps/api-gateway
+      - ./libs:/app/libs
+      - ./logs/api-gateway:/app/logs
+    networks:
+      - backend
+
+  auth:
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+      target: build-stage
+    container_name: auth
+    command: >
+      sh -c "
+      npx prisma generate --schema /app/database/schema.prisma &&
+      npx prisma migrate deploy --schema /app/database/schema.prisma &&
+      yarn start:auth:dev auth
+      "
+    env_file:
+      - .env
+    volumes:
+      - ./apps/auth:/app/apps/auth
+      - ./libs:/app/libs
+      - ./logs/auth:/app/logs
+      - ./databases/auth:/app/database
+    networks:
+      - backend
+    
+  auth-db:
+    image: mysql:5.7
+    container_name: auth-db
+    restart: always
+    ports:
+      - 3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: auth
+    volumes:
+      - auth-data:/var/lib/mysql
+    networks:
+    - backend
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8081:8080
+    networks:
+      - backend
